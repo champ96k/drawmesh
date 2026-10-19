@@ -1,0 +1,65 @@
+/**
+ * DrawMesh brand tokens.
+ *
+ * The Excalidraw stylesheet defines the whole design system; only the brand
+ * hues are overridden here so every other surface, radius, shadow and
+ * typographic detail stays pixel-identical to the reference.
+ *
+ * The package exposes its light palette on `.excalidraw` and its dark
+ * palette on `.excalidraw.theme--dark`, so both themes are overridden.
+ */
+
+.excalidraw {
+  --color-primary: #5b57d6;
+  --color-primary-hover: #4a46c9;
+  --color-primary-darker: #4a46c9;
+  --color-primary-darkest: #3d3aab;
+  --color-primary-light: #e6e5fd;
+  --color-primary-light-darker: #d7d5fb;
+  --color-secondary: #5b57d6;
+  --color-selection: #4a46c9;
+  --color-on-primary-container: #ffffff;
+}
+
+.excalidraw.theme--dark {
+  --color-primary: #9d99ff;
+  --color-primary-hover: #b2aeff;
+  --color-primary-darker: #b2aeff;
+  --color-primary-darkest: #beb9ff;
+  --color-primary-light: #43415e;
+  --color-primary-light-darker: #35335a;
+  --color-secondary: #9d99ff;
+  --color-selection: #6965db;
+}
+
+/* The package's modal scrim is lighter than the one on excalidraw.com.
+   Matching it keeps the dialogs pixel-identical against the reference. */
+.excalidraw .Modal__background {
+  background-color: #12121251;
+}
+
+/* The UI font ships with the package; make sure it resolves locally so the
+   app keeps working offline. */
+@font-face {
+  font-family: "Assistant";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Assistant/Assistant-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Assistant";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Assistant/Assistant-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Assistant";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/Assistant/Assistant-Bold.woff2") format("woff2");
+}

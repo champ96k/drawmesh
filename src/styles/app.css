@@ -1,0 +1,201 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overscroll-behavior: none;
+  font-family:
+    "Assistant",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.drawmesh-app {
+  height: 100%;
+  width: 100%;
+}
+
+.drawmesh-boot {
+  height: 100%;
+  width: 100%;
+  background: #ffffff;
+}
+
+.excalidraw.theme--dark ~ .drawmesh-boot,
+body:has(.excalidraw.theme--dark) .drawmesh-boot {
+  background: #121212;
+}
+
+/* ---------------------------------------------------------------- logo -- */
+
+.DrawMeshLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-primary);
+}
+
+.DrawMeshLogo-icon {
+  height: 2rem;
+  width: 2rem;
+  flex: none;
+}
+
+.DrawMeshLogo-text {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: currentColor;
+}
+
+.DrawMeshLogo.is-xs .DrawMeshLogo-icon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.DrawMeshLogo.is-small .DrawMeshLogo-icon {
+  height: 1.75rem;
+  width: 1.75rem;
+}
+
+.DrawMeshLogo.is-normal .DrawMeshLogo-icon {
+  height: 2.75rem;
+  width: 2.75rem;
+}
+
+.DrawMeshLogo.is-large .DrawMeshLogo-icon {
+  height: 3.5rem;
+  width: 3.5rem;
+}
+
+/* The welcome screen renders the logo inside an `excalifont` wrapper, which
+   is the hand-drawn face — keep the wordmark in it for visual parity. */
+.welcome-screen-center__logo .DrawMeshLogo-text {
+  font-family: inherit;
+  font-size: 2.6rem;
+  line-height: 1.1;
+}
+
+/* -------------------------------------------------- toolbar keybindings --- */
+
+/* The package renders the numeric shortcut on each tool; excalidraw.com
+   renders the letter one. `data-parity-key` is written by
+   `ToolbarKeybindingParity` and survives React re-renders. */
+.excalidraw .App-toolbar .ToolIcon__keybinding[data-parity-key] {
+  font-size: 0;
+}
+
+.excalidraw .App-toolbar .ToolIcon__keybinding[data-parity-key]::after {
+  content: attr(data-parity-key);
+  font-size: 0.625rem;
+  color: var(--keybinding-color);
+  font-family: var(--ui-font);
+}
+
+/* ------------------------------------------------------ command palette --- */
+
+.drawmesh-command-palette {
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  min-width: 0;
+}
+
+.drawmesh-command-palette__input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-primary, inherit);
+  border-bottom: 1px solid var(--default-border-color, #e0e0e0);
+  width: 100%;
+  font-family: inherit;
+}
+
+.drawmesh-command-palette__results {
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.drawmesh-command-palette__group {
+  padding: 0.25rem 0;
+}
+
+.drawmesh-command-palette__category {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+  padding: 0.375rem 1rem 0.25rem;
+}
+
+.drawmesh-command-palette__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 0.875rem;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+
+.drawmesh-command-palette__item[data-active="true"] {
+  background: var(--color-primary-light, #e3e2fe);
+  color: var(--color-primary-darkest, #4a47b1);
+}
+
+.drawmesh-command-palette__shortcut {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.drawmesh-command-palette__empty {
+  padding: 1rem;
+  font-size: 0.875rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------- top right -- */
+
+.drawmesh-top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.drawmesh-top-right__brand {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+}
+
+.drawmesh-top-right__status {
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--border-radius-lg, 0.5rem);
+  color: var(--color-text-primary, var(--text-primary-color));
+  background: var(--color-surface-low, var(--sidebar-bg-color, transparent));
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.drawmesh-top-right__status[data-status="saving"] {
+  opacity: 1;
+}
