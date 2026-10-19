@@ -170,6 +170,40 @@ body:has(.excalidraw.theme--dark) .drawmesh-boot {
   text-align: center;
 }
 
+/* ------------------------------------------------ removed excalidraw bits --- */
+
+/* The shape library is not part of DrawMesh: no Library button in the top
+   right, no Library tab in the sidebar and no "Add to library" entry in the
+   context menu. The "Find on canvas" search tab is kept. */
+.excalidraw .sidebar-trigger__label-element {
+  display: none;
+}
+
+.excalidraw .context-menu li[data-testid="addToLibrary"] {
+  display: none;
+}
+
+.excalidraw [role="tab"][id$="-trigger-library"] {
+  display: none;
+}
+
+.excalidraw [role="tabpanel"][id$="-content-library"] {
+  display: none;
+}
+
+/* The help dialog links out to the Excalidraw docs, blog, issue tracker and
+   YouTube channel. DrawMesh has no such pages, so the whole header of
+   links is dropped. */
+.excalidraw .HelpDialog__header {
+  display: none;
+}
+
+/* A link that lost its href must not look clickable. */
+.drawmesh-unlinked {
+  cursor: default;
+  text-decoration: none;
+}
+
 /* ----------------------------------------------------------- top right -- */
 
 .drawmesh-top-right {

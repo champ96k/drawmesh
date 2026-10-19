@@ -231,16 +231,6 @@ export const useCommands = (): Command[] => {
         },
       },
       {
-        id: "app.library",
-        category: "App",
-        label: "Toggle library",
-        keywords: "sidebar panel shapes",
-        run: () => {
-          api?.toggleSidebar({ name: "default" });
-          setOpen(false);
-        },
-      },
-      {
         id: "app.language",
         category: "App",
         label: "Change language",

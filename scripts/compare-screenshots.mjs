@@ -57,7 +57,7 @@ const pairs = [
   ["07-help-dialog-light.png", "04-help-dialog-light.png"],
   ["08-export-dialog-light.png", "05-export-dialog-light.png"],
   ["09-command-palette-light.png", "06-command-palette-light.png"],
-  ["06-library-panel-light.png", "07-library-panel-light.png"],
+  ["13-search-sidebar-light.png", "07-search-sidebar-light.png"],
 ];
 
 const results = [];

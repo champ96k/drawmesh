@@ -24,16 +24,18 @@ const count = (selector) =>
 const has = (selector) =>
   cdp.eval(`return !!document.querySelector(${JSON.stringify(selector)})`);
 
-/** Presses Escape until nothing modal is left open. */
+/** Presses Escape until neither a dialog nor the main menu is left open. */
 const closeDialogs = async () => {
-  for (let i = 0; i < 4; i++) {
-    if (!(await has(".Modal"))) {
+  for (let i = 0; i < 5; i++) {
+    const modal = await has(".Modal");
+    const menu = await has(".dropdown-menu");
+    if (!modal && !menu) {
       return true;
     }
     await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
     await sleep(600);
   }
-  return !(await has(".Modal"));
+  return !(await has(".Modal")) && !(await has(".dropdown-menu"));
 };
 
 /** Opens the canvas main menu and returns whether it opened. */
@@ -44,7 +46,9 @@ const openMainMenu = async () => {
       if (trigger) { trigger.click(); }
       return !!trigger;
     `);
-    await sleep(700);
+    // The menu fades in; clicking before the animation settles would land
+    // the press and the release on different elements.
+    await sleep(1200);
     if (await has(".dropdown-menu")) {
       return true;
     }
@@ -91,7 +95,42 @@ await cdp.setViewport(1440, 900, 2);
 await cdp.goto(URL, 8000);
 await sleep(2500);
 
-// Start from a known state: English, light theme, empty scene.
+// Drop any service worker and cache from a previous build, otherwise the
+// stale precache would serve the old assets.
+await cdp.eval(`
+  return Promise.all([
+    navigator.serviceWorker.getRegistrations().then((rs) => Promise.all(rs.map((r) => r.unregister()))),
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))),
+  ]).then(() => true);
+`);
+await cdp.goto(URL, 8000);
+await sleep(3000);
+
+// Start from a known state: English, light theme, empty scene. The
+// preferences are set through the app's own controls so the app persists
+// them exactly the way a user would.
+await openMainMenu();
+await cdp.eval(`
+  const select = document.querySelector('.dropdown-select__language');
+  if (select) {
+    select.value = 'en';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  return true;
+`);
+await sleep(2000);
+await closeDialogs();
+
+await openMainMenu();
+await cdp.eval(`
+  // light, dark, system — the radios carry no value attribute.
+  const input = document.querySelectorAll('.RadioGroup input[type="radio"]')[0];
+  if (input) { input.click(); }
+  return true;
+`);
+await sleep(1500);
+await closeDialogs();
+
 await cdp.eval(`
   return new Promise((resolve) => {
     const req = indexedDB.open("drawmesh");
@@ -99,7 +138,6 @@ await cdp.eval(`
       const db = req.result;
       const tx = db.transaction("drawmesh", "readwrite");
       const store = tx.objectStore("drawmesh");
-      store.put({ theme: "light", language: "en", canvasBackground: "#ffffff" }, "preferences");
       store.delete("scene");
       store.delete("library");
       tx.oncomplete = () => resolve(true);
@@ -196,8 +234,17 @@ check("help dialog opens", (await count(".HelpDialog")) > 0);
 await closeDialogs();
 
 await openMainMenu();
-await clickMenuItem(/^Export image/);
-check("export dialog opens", (await count(".ImageExportModal")) > 0);
+const exportLabel = await cdp.eval(`
+  return Array.from(document.querySelectorAll('.dropdown-menu-item__text')).map((e) => e.textContent.trim());
+`);
+await clickMenuItem(/export image/i);
+let exportOpen = (await count(".ImageExportModal")) > 0;
+if (!exportOpen) {
+  // The image export dialog renders a preview canvas; give it a moment.
+  await sleep(2000);
+  exportOpen = (await count(".ImageExportModal")) > 0;
+}
+check("export dialog opens", exportOpen, exportLabel.join(" | "));
 await closeDialogs();
 
 await openMainMenu();
@@ -220,13 +267,54 @@ await sleep(1200);
 check("command palette opens with Cmd+/", (await count(".drawmesh-command-palette")) > 0);
 await closeDialogs();
 
-await cdp.eval(`
-  const input = document.querySelector('input[aria-label="Library"]');
-  if (input) { input.click(); }
-  return true;
-`);
-await sleep(1800);
-check("library panel opens", (await count(".default-sidebar")) > 0);
+// The shape library is removed: the trigger, the sidebar tab and the
+// "Add to library" context-menu entry must all be gone.
+check(
+  "library trigger is hidden",
+  await cdp.eval(`
+    const el = document.querySelector('.sidebar-trigger__label-element');
+    return !el || getComputedStyle(el).display === 'none';
+  `),
+);
+await openMainMenu();
+await clickMenuItem(/^Find on canvas/);
+await sleep(2000);
+check("find on canvas opens the search sidebar", (await count(".default-sidebar")) > 0);
+check(
+  "library tab is hidden in the sidebar",
+  await cdp.eval(`
+    const triggers = Array.from(document.querySelectorAll('.sidebar-tab-trigger'));
+    const library = triggers.find((t) => t.id.endsWith('-trigger-library'));
+    return !library || getComputedStyle(library).display === 'none';
+  `),
+);
+check(
+  "no add-to-library entry in the context menu",
+  await cdp.eval(`
+    return !document.querySelector('.context-menu li[data-testid="addToLibrary"]');
+  `),
+);
+await closeDialogs();
+
+// The help dialog must not link out to the Excalidraw docs, blog, issue
+// tracker or YouTube channel.
+await cdp.clickSelector("button.help-icon");
+await sleep(1500);
+check(
+  "help dialog has no excalidraw link header",
+  await cdp.eval(`
+    const header = document.querySelector('.HelpDialog__header');
+    return !header || getComputedStyle(header).display === 'none';
+  `),
+);
+check(
+  "help dialog exposes no excalidraw links",
+  await cdp.eval(`
+    return Array.from(document.querySelectorAll('.HelpDialog a[href]'))
+      .filter((a) => getComputedStyle(a).display !== 'none')
+      .every((a) => !/excalidraw/i.test(a.getAttribute('href') || ''));
+  `),
+);
 await closeDialogs();
 
 // -------------------------------------------------------------- persistence --
@@ -308,6 +396,17 @@ check(
 );
 
 // ------------------------------------------------------------------ offline --
+// Wait for the freshly installed service worker to take control.
+await cdp.eval(`
+  return navigator.serviceWorker.ready.then(() => true);
+`);
+for (let attempt = 0; attempt < 20; attempt++) {
+  const controlled = await cdp.eval(`return !!navigator.serviceWorker.controller`);
+  if (controlled) {
+    break;
+  }
+  await sleep(500);
+}
 await cdp.send("Network.enable");
 await cdp.send("Network.emulateNetworkConditions", {
   offline: true,

@@ -81,9 +81,9 @@ node scripts/capture-drawmesh.mjs               # capture DrawMesh
 node scripts/compare-screenshots.mjs             # pixel diff
 ```
 
-Current result: **6.2 % mean changed pixels** across the welcome screen
+Current result: **5.65 % mean changed pixels** across the welcome screen
 (light and dark), the main menu, the help dialog, the export dialog, the
-command palette and the library panel.
+command palette and the search sidebar.
 
 ### Known deviations
 

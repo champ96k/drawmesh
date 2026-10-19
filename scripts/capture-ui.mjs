@@ -99,10 +99,22 @@ await capture("05-main-menu-light");
 await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
 await sleep(800);
 
-// 6. Library panel.
+// 6. Library panel, then its search tab.
 await cdp.clickSelector(".default-sidebar-trigger");
 await sleep(2500);
 await capture("06-library-panel-light");
+
+const searchTab = await cdp.eval(`
+  const trigger = document.querySelector('.sidebar-tab-trigger');
+  if (!trigger) return null;
+  const r = trigger.getBoundingClientRect();
+  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+`);
+if (searchTab) {
+  await cdp.click(searchTab.x, searchTab.y);
+  await sleep(1800);
+  await capture("13-search-sidebar-light");
+}
 await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
 await sleep(1000);
 

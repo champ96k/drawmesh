@@ -186,14 +186,10 @@ await capture("06-command-palette-light");
 await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
 await sleep(800);
 
-// 7. Library panel.
-await cdp.eval(`
-  const input = document.querySelector('input[aria-label="Library"]');
-  if (input) { input.click(); }
-  return true;
-`);
+// 7. Find-on-canvas sidebar (the shape library is removed in DrawMesh).
+await cdp.pressKey("f", { code: "KeyF", keyCode: 70, text: "f", modifiers: 4 });
 await sleep(2000);
-await capture("07-library-panel-light");
+await capture("07-search-sidebar-light");
 await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
 await sleep(800);
 

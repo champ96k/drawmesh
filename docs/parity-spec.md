@@ -188,7 +188,8 @@ menu, the toolbar and the help button. They ship with the package
 ### Help dialog
 
 `HelpDialog` — ships with the package (`openDialog.name === "help"`).
-Reused unchanged.
+Reused, except for its header of links to the Excalidraw documentation,
+blog, issue tracker and YouTube channel, which DrawMesh removes (see §10).
 
 ### Command palette
 
@@ -197,8 +198,9 @@ Reused unchanged.
 
 ### Library panel
 
-`DefaultSidebar` + `DefaultSidebarTriggerTunnel` — ships with the package.
-Reused; backed by DrawMesh's own IndexedDB storage.
+The shape library is **removed** (see §10). The "Find on canvas" search tab
+of the same sidebar is kept, so `DefaultSidebar` + `DefaultSidebarTriggerTunnel`
+are reused with the library tab hidden.
 
 ### Mermaid
 
@@ -329,7 +331,60 @@ Reused from the package — no re-implementation:
 
 ---
 
-## 10. Known deviations
+## 10. What DrawMesh removes
+
+Three things are taken out of the Excalidraw experience, on top of the
+account and share features:
+
+### 10.1 The shape library ("browser library")
+
+The library is a browser for public shape collections that is backed by
+`libraries.excalidraw.com` and the `excalidraw-libraries` repository.
+DrawMesh has no such service, so the whole feature is removed:
+
+| Surface                                             | How it is removed                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| The **Library** button in the top right             | `.excalidraw .sidebar-trigger__label-element { display: none }`                                  |
+| The **Library** tab in the sidebar                  | `.excalidraw [role="tab"][id$="-trigger-library"] { display: none }` and the matching `tabpanel` |
+| **Add to library** in the canvas context menu       | `.excalidraw .context-menu li[data-testid="addToLibrary"] { display: none }`                     |
+| The "Toggle library" command in the command palette | removed from `src/features/commands.ts`                                                          |
+
+The _Find on canvas_ search tab of the same sidebar is kept, and the
+library is therefore never rendered — nothing is ever fetched from
+`libraries.excalidraw.com` or `raw.githubusercontent.com/excalidraw/…`.
+
+### 10.2 The help dialog's link header
+
+The package's help dialog opens with four buttons that link to the
+Excalidraw documentation, blog, issue tracker and YouTube channel. None of
+those pages exist for DrawMesh, so the header is removed:
+
+- `.excalidraw .HelpDialog__header { display: none }` removes it from the
+  layout, and
+- `src/components/RemoveExcalidrawLinks.tsx` empties the header and
+  strips the `href` of any remaining anchor pointing at `excalidraw`, so
+  the links are gone from the DOM as well.
+
+The header is emptied rather than removed from the tree because React
+detaches the outermost host node when it unmounts; emptying it keeps the
+unmount safe.
+
+### 10.3 Every other Excalidraw link
+
+The same component strips the `href` from any anchor that points at
+`excalidraw`, which covers the library's "open in Excalidraw" link and the
+"publish library" links. The social links (GitHub, Discord, X) and the
+"Excalidraw+" banner are already gone with the custom main menu, and the
+"Save to…" dialog only offers _Save to disk_ — the "export to a link" card
+that posts to `json.excalidraw.com` is not rendered because no
+`onExportToBackend` is configured.
+
+`scripts/verify.mjs` asserts that the running document contains no
+`a[href]` pointing at `excalidraw`.
+
+---
+
+## 11. Known deviations
 
 | Deviation                                                       | Reason                                                                                                                                                   |
 | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -352,10 +407,10 @@ Two deliberate visual patches bridge the version gap:
 
 ---
 
-## 11. Verification
+## 12. Verification
 
 `node scripts/verify.mjs` drives the production build in Chromium over CDP
-and asserts the behaviours this document specifies. 23 checks, all passing:
+and asserts the behaviours this document specifies. 28 checks, all passing:
 
 - no Excalidraw branding, no sign-up / share / live-collaboration entries
 - the main menu contains the reference entries and the preferences section
@@ -375,7 +430,7 @@ registry, the brand mark).
 
 ---
 
-## 12. Evidence log
+## 13. Evidence log
 
 | Date       | REA / tool                        | Target                                               | Finding                                                             | Evidence                                                              |
 | ---------- | --------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |

@@ -11,6 +11,7 @@ import { DrawMeshMainMenu } from "@/components/DrawMeshMainMenu";
 import { DrawMeshWelcomeScreen } from "@/components/DrawMeshWelcomeScreen";
 import { DrawMeshTopRightUI } from "@/components/DrawMeshTopRightUI";
 import { useSaveStatus } from "@/hooks/useSaveStatus";
+import { RemoveExcalidrawLinks } from "@/components/RemoveExcalidrawLinks";
 import { ToolbarKeybindingParity } from "@/components/ToolbarKeybindingParity";
 import { useDrawMeshPreferences } from "@/hooks/useDrawMeshPreferences";
 import { CommandPaletteContext } from "@/features/commands";
@@ -36,6 +37,21 @@ export const App = () => {
   // Cmd+/ and Cmd+Shift+P open the command palette.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        // The package's dialogs only close on Escape when something inside
+        // them holds the focus, which is not always the case (the help
+        // dialog has no focusable content once its link header is gone).
+        const appState = api?.getAppState();
+        if (appState?.openDialog) {
+          event.stopPropagation();
+          api?.updateScene({
+            appState: { ...appState, openDialog: null },
+            captureUpdate: "IMMEDIATELY",
+          });
+        }
+        return;
+      }
+
       const isPaletteShortcut =
         (event.metaKey || event.ctrlKey) &&
         (event.key === "/" || (event.key === "p" && event.shiftKey));
@@ -57,7 +73,7 @@ export const App = () => {
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [api]);
 
   const scheduleSave = useCallback(
     (
@@ -182,6 +198,7 @@ export const App = () => {
           />
           <DrawMeshWelcomeScreen />
           <ToolbarKeybindingParity />
+          <RemoveExcalidrawLinks />
         </ExcalidrawCanvas>
         {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
       </div>
