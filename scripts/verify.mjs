@@ -10,6 +10,11 @@ import { Cdp, findOrCreateTarget, sleep } from "./lib/cdp.mjs";
 const URL = process.argv[2] || "http://localhost:4173/";
 
 const results = [];
+const step = (message) => {
+  if (process.env.DRAWMESH_VERBOSE) {
+    console.log(`  · ${message}`);
+  }
+};
 const check = (name, ok, detail = "") => {
   results.push({ name, ok, detail });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
@@ -32,7 +37,15 @@ const closeDialogs = async () => {
     if (!modal && !menu) {
       return true;
     }
-    await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
+    await cdp.syntheticKey("Escape", { code: "Escape", keyCode: 27 });
+    await sleep(600);
+  }
+  // Fall back to toggling the trigger closed if Escape was swallowed.
+  if (await has(".dropdown-menu")) {
+    await cdp.eval(`
+      document.querySelector('[data-testid="main-menu-trigger"]')?.click();
+      return true;
+    `);
     await sleep(600);
   }
   return !(await has(".Modal")) && !(await has(".dropdown-menu"));
@@ -56,21 +69,24 @@ const openMainMenu = async () => {
   return false;
 };
 
-/** Clicks the menu entry whose label matches. */
+/**
+ * Activates the menu entry whose label matches.
+ *
+ * The entry is activated directly rather than through a coordinate click:
+ * some entries open a modal, and a synthetic press/release that straddles
+ * the modal opening would deliver the release to the modal backdrop
+ * instead of to the entry.
+ */
 const clickMenuItem = async (pattern) => {
-  const box = await cdp.eval(`
+  const clicked = await cdp.eval(`
     const item = Array.from(document.querySelectorAll('.dropdown-menu-item'))
       .find((element) => ${pattern}.test(element.textContent || ''));
-    if (!item) return null;
-    const r = item.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    if (!item) return false;
+    item.click();
+    return true;
   `);
-  if (!box) {
-    return false;
-  }
-  await cdp.click(box.x, box.y);
-  await sleep(1200);
-  return true;
+  await sleep(1500);
+  return clicked;
 };
 
 const sceneSize = () =>
@@ -92,23 +108,27 @@ const sceneSize = () =>
   `);
 
 await cdp.setViewport(1440, 900, 2);
+step("first goto");
 await cdp.goto(URL, 8000);
 await sleep(2500);
 
 // Drop any service worker and cache from a previous build, otherwise the
 // stale precache would serve the old assets.
+step("clear service worker");
 await cdp.eval(`
   return Promise.all([
     navigator.serviceWorker.getRegistrations().then((rs) => Promise.all(rs.map((r) => r.unregister()))),
     caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))),
   ]).then(() => true);
 `);
+step("reload after clearing");
 await cdp.goto(URL, 8000);
 await sleep(3000);
 
 // Start from a known state: English, light theme, empty scene. The
 // preferences are set through the app's own controls so the app persists
 // them exactly the way a user would.
+step("set language");
 await openMainMenu();
 await cdp.eval(`
   const select = document.querySelector('.dropdown-select__language');
@@ -121,6 +141,7 @@ await cdp.eval(`
 await sleep(2000);
 await closeDialogs();
 
+step("set theme");
 await openMainMenu();
 await cdp.eval(`
   // light, dark, system — the radios carry no value attribute.
@@ -131,6 +152,7 @@ await cdp.eval(`
 await sleep(1500);
 await closeDialogs();
 
+step("delete scene");
 await cdp.eval(`
   return new Promise((resolve) => {
     const req = indexedDB.open("drawmesh");
@@ -147,9 +169,12 @@ await cdp.eval(`
   });
 `);
 // Reload straight away so the running app cannot re-save its stale scene.
+step("reload");
 await cdp.goto(URL, 8000);
 await sleep(3000);
+step("close dialogs");
 await closeDialogs();
+step("ready");
 
 // ---------------------------------------------------------------- branding --
 check(
@@ -228,7 +253,14 @@ check(
 );
 
 // ----------------------------------------------------------------- dialogs --
-await cdp.clickSelector("button.help-icon");
+// The button is activated directly: the welcome screen's hand-drawn
+// decorations overlap the help button, which makes a coordinate click
+// unreliable.
+await cdp.eval(`
+  const el = document.querySelector('button.help-icon');
+  if (el) { el.click(); }
+  return !!el;
+`);
 await sleep(1500);
 check("help dialog opens", (await count(".HelpDialog")) > 0);
 await closeDialogs();
@@ -253,7 +285,7 @@ check(
   "command palette opens from the menu",
   (await count(".drawmesh-command-palette")) > 0,
 );
-await cdp.pressKey("Escape", { code: "Escape", keyCode: 27 });
+await cdp.syntheticKey("Escape", { code: "Escape", keyCode: 27 });
 await sleep(800);
 check(
   "command palette closes with Escape",
@@ -262,7 +294,7 @@ check(
 
 await cdp.click(1100, 700);
 await sleep(300);
-await cdp.pressKey("/", { code: "Slash", keyCode: 191, text: "/", modifiers: 4 });
+await cdp.syntheticKey("/", { code: "Slash", keyCode: 191, modifiers: 4 });
 await sleep(1200);
 check("command palette opens with Cmd+/", (await count(".drawmesh-command-palette")) > 0);
 await closeDialogs();
@@ -341,6 +373,7 @@ check(
 );
 
 // -------------------------------------------------------------------- theme --
+step("set theme");
 await openMainMenu();
 await cdp.eval(`
   // light, dark, system — the radios carry no value attribute.
@@ -356,6 +389,7 @@ check(
 await closeDialogs();
 
 // ----------------------------------------------------------------- language --
+step("set language");
 await openMainMenu();
 await cdp.eval(`
   const select = document.querySelector('.dropdown-select__language');

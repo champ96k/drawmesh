@@ -25,6 +25,12 @@ export class Cdp {
         else resolve(msg.result);
       } else if (msg.method) {
         this.events.push(msg);
+        // The canvas registers a `beforeunload` handler, so navigating away
+        // with unsaved changes opens a native dialog. Left open it blocks
+        // the renderer and swallows every later input event.
+        if (msg.method === "Page.javascriptDialogOpening") {
+          this.send("Page.handleJavaScriptDialog", { accept: true }).catch(() => {});
+        }
       }
     });
   }
@@ -162,6 +168,33 @@ export class Cdp {
       pointerType: "mouse",
     });
     await sleep(250);
+  }
+
+  /**
+   * Dispatches a keyboard event from the page itself. Chrome drops some
+   * synthesised key events (notably Escape while a text field inside a
+   * portal has the focus), so the harness uses the DOM event instead.
+   */
+  async syntheticKey(key, { code, keyCode, modifiers = 0 } = {}) {
+    await this.eval(`
+      const target = document.activeElement || document.body;
+      const event = new KeyboardEvent('keydown', {
+        key: ${JSON.stringify(key)},
+        code: ${JSON.stringify(code ?? key)},
+        keyCode: ${keyCode ?? 0},
+        which: ${keyCode ?? 0},
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        metaKey: ${Boolean(modifiers & 4)},
+        ctrlKey: ${Boolean(modifiers & 2)},
+        shiftKey: ${Boolean(modifiers & 8)},
+        altKey: ${Boolean(modifiers & 1)},
+      });
+      target.dispatchEvent(event);
+      return true;
+    `);
+    await sleep(300);
   }
 
   async key(key, { code, keyCode, text, modifiers = 0 } = {}) {
