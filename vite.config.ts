@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
